@@ -1,0 +1,48 @@
+clear all
+clc
+close all
+
+figure(1)
+hold on
+axis equal
+% for x = 0:2000:20000
+%     line = [x, 0;
+%         x, 10000];
+%     plot(line(:,1), line(:,2),'k-')
+% end
+% for y = 0:2000:10000
+%     line = [0, y;
+%         20000, y];
+%     plot(line(:,1), line(:,2),'k-')
+% end
+
+res_x = 2000;
+res_y = 2000;
+
+num_agent = 6;
+line_size = 4;
+nodes = [];
+for i = 1:num_agent
+    agent_path = importfile("../agent"+int2str(i)+"path.csv");
+    [m,n] = size(agent_path);
+    pos = [];
+    for i = 1:m
+        pos = [pos; agent_path{i,2}, agent_path{i,3}];
+        nodes = [nodes;agent_path{i,2}, agent_path{i,3}];
+    end
+    plot(pos(:,1), pos(:,2),'LineWidth',line_size)
+    hold on
+end
+
+for i = 1:size(nodes)
+    width = 100; % whatever
+    height = 50; % whatever...
+    xCenter = 400; % Wherever...
+    yCenter = 800; % Wherever...
+    xLeft = nodes( - width/2;
+    yBottom = yCenter - height/2;
+    rectangle('Position', [xLeft, yBottom, width, height], 'EdgeColor', 'b', 'FaceColor', 'r', 'LineWidth', 4);
+    
+    plot(nodes())
+end
+
