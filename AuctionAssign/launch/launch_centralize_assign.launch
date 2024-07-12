@@ -1,0 +1,9 @@
+<launch>
+    <arg name="uav_num" default="50"/>
+    <node pkg="AuctionAssign" type="task_assign" name="task_assign" output="screen">
+        <param name="uav_num" type="int" value="$(arg uav_num)"/>
+    </node>
+</launch>
+
+<!-- 发布虚拟目标 -->
+<!-- rosrun AuctionAssign sim_pub 10 10 20 -->

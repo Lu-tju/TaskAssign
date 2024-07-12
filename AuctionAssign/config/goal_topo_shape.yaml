@@ -1,0 +1,26 @@
+# distance to goal   dis_scale * relative_pos
+dis_scale: 2.0
+num_1_allocated_to_goal:
+  relative_pos_0 : {x: 0, y: 0, z: 0.0}
+
+num_2_allocated_to_goal:
+  relative_pos_0 : {x: 0, y: 1, z: 0.0}
+  relative_pos_1 : {x: 0, y: -1, z: 0.0}
+
+num_3_allocated_to_goal:
+  relative_pos_0 : {x: 0, y: 1, z: 0.0}
+  relative_pos_1 : {x: -0.866, y: -0.5, z: 0.0}
+  relative_pos_2 : {x: 0.866, y: -0.5, z: 0.0}
+
+num_4_allocated_to_goal:
+  relative_pos_0 : {x: 0.707, y: 0.707, z: 0.0}
+  relative_pos_1 : {x: -0.707, y: 0.707, z: 0.0}
+  relative_pos_2 : {x: -0.707, y: -0.707, z: 0.0}
+  relative_pos_3 : {x: 0.707, y: -0.707, z: 0.0}
+
+num_5_allocated_to_goal:
+  relative_pos_0 : {x: 0, y: 0, z: 0.0}
+  relative_pos_1 : {x: 0.707, y: 0.707, z: 0.0}
+  relative_pos_2 : {x: -0.707, y: 0.707, z: 0.0}
+  relative_pos_3 : {x: -0.707, y: -0.707, z: 0.0}
+  relative_pos_4 : {x: 0.707, y: -0.707, z: 0.0}
