@@ -2,7 +2,7 @@
 # 1、拍卖算法 AuctionAssign
 ```
 分配节点启动：
-roslaunch AuctionAssign launch_centralize_assign.launch
+roslaunch AuctionAssign launch_auction.launch
 发布测试目标：
 rosrun AuctionAssign sim_pub 10 10 20
 ```
