@@ -25,6 +25,8 @@ namespace firepower_allocation
 		{
 			agents_ = agents;
 		};
+		void updateUAV(Eigen::Vector2d pos, double angle, int uav_id);
+		void updateTarget(Eigen::Vector2d pos, double theta);
 		
 	private:
 		std::vector<Waypoint> nodes_;
@@ -36,6 +38,7 @@ namespace firepower_allocation
 		int uav_num_;
 		int target_num_;
 		double r_{50};	// 固定翼转弯半径
+		double new_target_thresh{20};
 		int maximum_task_allocation_per_target_{3};
 	};
 }

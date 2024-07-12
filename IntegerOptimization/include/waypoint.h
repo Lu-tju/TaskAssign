@@ -15,14 +15,12 @@ namespace firepower_allocation {
 			coord_(coord),
 			theta_(theta),
 			id_(id) {
-
 		}
 
 		Waypoint(Eigen::Vector2d coord, double theta ) :
 			coord_(coord),
 			theta_(theta),
 			id_(0) {
-
 		}
 
 		double getX() {
@@ -41,6 +39,11 @@ namespace firepower_allocation {
 
 		Eigen::Vector2d getVec() {
 			return coord_;
+		}
+
+		void update(Eigen::Vector2d coord, double theta){
+			coord_ = coord;
+			theta_ = theta;
 		}
 		
 		// 代价函数，目前是杜宾斯距离

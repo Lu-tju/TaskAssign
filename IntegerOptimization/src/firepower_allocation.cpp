@@ -76,6 +76,38 @@ void FirepowerAllocation::random_init(){
 	std::cout << "r:" << r_ <<std::endl;
 }
 
+void FirepowerAllocation::updateUAV(Eigen::Vector2d pos, double angle, int uav_id){
+	if(uav_id > (agents_.size() - 1))
+		return;
+	Waypoint tmp_target(pos, angle, uav_id);
+	agents_[uav_id] = tmp_target;
+}
+
+void FirepowerAllocation::updateTarget(Eigen::Vector2d pos, double theta){
+	/*	现在逻辑有问题，分配算法不支持添加新目标再进行分配	*/
+	double dmin = 100000000;
+	int dmin_id = -1;
+    for (int i = 0; i < targets_.size(); i++)
+    {
+        Eigen::Vector2d target_i = Eigen::Vector2d(targets_[i].getX(), targets_[i].getY());
+        
+		double distance = (pos - target_i).norm();
+		if (dmin > distance)
+		{
+			dmin = distance;
+			dmin_id = i;
+		}
+    }
+	if (dmin < new_target_thresh)
+	{
+		targets_[dmin_id].update(pos, theta);
+	}
+	else{
+		Waypoint new_target(pos, theta, targets_.size());
+		targets_.push_back(new_target);
+	}
+}
+
 // 执行混合整数线性规划（MILP）来进行代理分配
 bool FirepowerAllocation::run()
 {
