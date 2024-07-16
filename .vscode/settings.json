@@ -75,6 +75,10 @@
         "queue": "cpp",
         "stack": "cpp",
         "unordered_set": "cpp",
-        "complex": "cpp"
+        "complex": "cpp",
+        "forward_list": "cpp",
+        "__bit_reference": "cpp",
+        "filesystem": "cpp",
+        "ios": "cpp"
     }
 }
