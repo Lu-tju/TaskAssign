@@ -6,3 +6,7 @@ roslaunch AuctionAssign launch_auction.launch
 发布测试目标：
 rosrun AuctionAssign sim_pub 10 10 20
 ```
+
+```
+rosrun IntegerOptimization fire_assign
+```

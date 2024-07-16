@@ -1,14 +1,16 @@
 #include "firepower_allocation.h"
 #include <iostream>
+#define VERBOSE
 
 using namespace firepower_allocation;
 
-FirepowerAllocation::FirepowerAllocation(int uav_num, int target_num, float radius, int max_agents_per_target){
+FirepowerAllocation::FirepowerAllocation(int uav_num, int target_num, float radius, int max_agents_per_target)
+{
 	uav_num_ = uav_num;
 	target_num_ = target_num;
 	r_ = radius;
 	maximum_task_allocation_per_target_ = max_agents_per_target;
-	
+
 	//  init as zero
 	std::vector<Waypoint> tmp_targets;
 	for (int i = 0; i < target_num_; i++)
@@ -29,10 +31,11 @@ FirepowerAllocation::FirepowerAllocation(int uav_num, int target_num, float radi
 	this->loadAgents(tmp_agents);
 }
 
-void FirepowerAllocation::random_init(){
+void FirepowerAllocation::random_init()
+{
 	std::random_device rd;
-    std::mt19937 gen(rd()); 
-    std::uniform_real_distribution<> distrib_pos(0.0, 10000.0);
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<> distrib_pos(0.0, 10000.0);
 	std::uniform_real_distribution<> distrib_angle(0.0, 360.0);
 
 	// 随机初始化目标
@@ -66,43 +69,47 @@ void FirepowerAllocation::random_init(){
 		tmp_agents.push_back(tmp_agent);
 	}
 	this->loadAgents(tmp_agents);
-
+#ifdef VERBOSE
 	std::cout << "targets:" << std::endl;
 	for (std::size_t i = 0; i < targets_.size(); ++i)
 		std::cout << "(" << (i + 1) << ") x: " << targets_[i].getX() << ", y: " << targets_[i].getY() << ", theta: " << targets_[i].getTheta() << std::endl;
 	std::cout << "agents:" << std::endl;
 	for (std::size_t i = 0; i < agents_.size(); ++i)
 		std::cout << "(" << (i + 1) << ") x: " << agents_[i].getX() << ", y: " << agents_[i].getY() << ", theta: " << agents_[i].getTheta() << std::endl;
-	std::cout << "r:" << r_ <<std::endl;
+	std::cout << "r:" << r_ << std::endl;
+#endif
 }
 
-void FirepowerAllocation::updateUAV(Eigen::Vector2d pos, double angle, int uav_id){
-	if(uav_id > (agents_.size() - 1))
+void FirepowerAllocation::updateUAV(Eigen::Vector2d pos, double angle, int uav_id)
+{
+	if (uav_id > (agents_.size() - 1))
 		return;
 	Waypoint tmp_target(pos, angle, uav_id);
 	agents_[uav_id] = tmp_target;
 }
 
-void FirepowerAllocation::updateTarget(Eigen::Vector2d pos, double theta){
-	/*	现在逻辑有问题，分配算法不支持添加新目标再进行分配	*/
+void FirepowerAllocation::updateTarget(Eigen::Vector2d pos, double theta)
+{
+	/*	现在变界条件暂不支持不断添加新目标再进行分配 */
 	double dmin = 100000000;
 	int dmin_id = -1;
-    for (int i = 0; i < targets_.size(); i++)
-    {
-        Eigen::Vector2d target_i = Eigen::Vector2d(targets_[i].getX(), targets_[i].getY());
-        
+	for (int i = 0; i < targets_.size(); i++)
+	{
+		Eigen::Vector2d target_i = Eigen::Vector2d(targets_[i].getX(), targets_[i].getY());
+
 		double distance = (pos - target_i).norm();
 		if (dmin > distance)
 		{
 			dmin = distance;
 			dmin_id = i;
 		}
-    }
+	}
 	if (dmin < new_target_thresh)
 	{
 		targets_[dmin_id].update(pos, theta);
 	}
-	else{
+	else
+	{
 		Waypoint new_target(pos, theta, targets_.size());
 		targets_.push_back(new_target);
 	}
@@ -113,16 +120,17 @@ bool FirepowerAllocation::run()
 {
 	bool res = false;
 
-	lprec *lp;				 // 初始化线性规划器 lp
-	int Ncol, *colno = NULL; // 设置变量的个数 Ncol
-	REAL *row = NULL;		 // 指针 row 在后续的部分会被用来存储线性规划中约束条件的系数
-	Ncol = agents_.size() * targets_.size();
-	lp = make_lp(0, Ncol); // make_lp(0, Ncol) 是一个函数调用，用于创建一个线性规划问题的线性规划模型（LP model）
-	// 0 表示要创建一个标准的线性规划模型，而 Ncol 则表示模型中变量（列）的数量。
-	// make_lp(0, Ncol) 返回的 lp 是一个指向线性规划模型的指针，后续的代码中会使用这个指针来操作线性规划模型，
-	// 包括设置约束条件、设置目标函数、添加变量、添加约束条件等
+	// 初始化线性规划模型和变量
+	lprec *lp;
+	int Ncol = agents_.size() * targets_.size();
+	lp = make_lp(0, Ncol);
 	if (lp == NULL)
 		return false;
+	set_verbose(lp, 0);
+
+	// 分配内存并初始化列和行
+	std::vector<int> colno(Ncol);
+	std::vector<REAL> row(Ncol);
 
 	for (int i = 0; i < agents_.size(); i++)
 	{
@@ -130,23 +138,14 @@ bool FirepowerAllocation::run()
 		{
 			int index = i * targets_.size() + j + 1;
 			std::string var_name = "x_" + std::to_string(i + 1) + "_" + std::to_string(j + 1);
-			// 根据代理和目标的索引生成变量的名称，例如 "x_1_1" 表示第一个代理和第一个目标的组合。
 			set_col_name(lp, index, const_cast<char *>(var_name.c_str()));
-			set_binary(lp, index, TRUE); // 设置变量x_i_j为二进制类型，即只能取 0 或 1 的值，这样的设置通常用于指示某个变量是否选中或未选中某个状态或决策。
+			set_binary(lp, index, TRUE);
 		}
 	}
 
-	// 使用动态内存分配来分配空间给数组
-	colno = (int *)malloc(Ncol * sizeof(*colno));
-	row = (REAL *)malloc(Ncol * sizeof(*row));
-	if ((colno == NULL) || (row == NULL))
-	{
-		return false;
-	}
-
-	// add constraint添加约束
-	set_add_rowmode(lp, TRUE); // 将线性规划模型设置为添加约束行模式，即在添加约束时可以逐行进行操作。
-	// 为每个目标增加约束，约束条件是每个目标最多分配给3个无人机
+	// ------------------------------------------ 1.约束条件------------------------------------------
+	set_add_rowmode(lp, TRUE);
+	// 每个目标最多N个飞机
 	for (int i = 0; i < targets_.size(); i++)
 	{
 		std::size_t k = 0;
@@ -155,14 +154,28 @@ bool FirepowerAllocation::run()
 			colno[k] = j * targets_.size() + i + 1;
 			row[k++] = 1;
 		}
-		if (!add_constraintex(lp, k, row, colno, LE, maximum_task_allocation_per_target_))
+		if (!add_constraintex(lp, k, row.data(), colno.data(), LE, maximum_task_allocation_per_target_))
 		{
+			std::cerr << "Failed to add constraint for target " << i << std::endl;
 			return false;
 		}
-		// 将该约束条件添加到线性规划模型中，其中 LE 表示小于等于约束，右侧的 agent_maximum_task_num_ 表示最大任务数。
 	}
-
-	// 为每个无人机添加约束条件，约束条件为每个无人机只能分配给一个目标约束条件添加到线性规划模型中，其中 EQ 表示等于约束，右侧的 1 表示约束条件的右侧值为 1。
+	// 每个目标最少N个飞机
+	for (int i = 0; i < targets_.size(); i++)
+	{
+		std::size_t k = 0;
+		for (int j = 0; j < agents_.size(); j++)
+		{
+			colno[k] = j * targets_.size() + i + 1;
+			row[k++] = 1;
+		}
+		if (!add_constraintex(lp, k, row.data(), colno.data(), GE, 1))
+		{
+			std::cerr << "Failed to add constraint for target " << i << std::endl;
+			return false;
+		}
+	}
+	// 每个飞机正好1个目标
 	for (int i = 0; i < agents_.size(); i++)
 	{
 		std::size_t k = 0;
@@ -171,30 +184,16 @@ bool FirepowerAllocation::run()
 			colno[k] = i * targets_.size() + j + 1;
 			row[k++] = 1;
 		}
-		if (!add_constraintex(lp, k, row, colno, EQ, 1))
+		if (!add_constraintex(lp, k, row.data(), colno.data(), EQ, 1))
 		{
+			std::cerr << "Failed to add constraint for agent " << i << std::endl;
 			return false;
 		}
-		// 将该约束条件添加到线性规划模型中，其中 EQ 表示等于约束，右侧的 1 表示约束条件的右侧值为 1。
 	}
 
-	// 无人机的距离不能大于一个航程约束,
-	for (int i = 0; i < targets_.size(); i++)
-	{
-		for (int j = 0; j < agents_.size(); j++)
-		{
-			int index = j * targets_.size() + i + 1;
-			if (agents_[j].distance_to(targets_[i], r_) > 60000)
-			{
-				set_bounds(lp, index, 0, 0); // set_bounds 函数用于设置变量的上下界限   set_bounds(lp, colno, lower, upper);
-			}
-		}
-	}
-
-	std::cout << "成功添加约束" << std::endl;
-
-	// set objective function
 	set_add_rowmode(lp, FALSE);
+
+	// ------------------------------------------ 2.代价函数 ------------------------------------------
 	std::size_t k = 0;
 	for (int i = 0; i < targets_.size(); i++)
 	{
@@ -204,43 +203,46 @@ bool FirepowerAllocation::run()
 			row[k++] = agents_[j].distance_to(targets_[i], r_);
 		}
 	}
-	if (!set_obj_fnex(lp, k, row, colno))
+	if (!set_obj_fnex(lp, k, row.data(), colno.data()))
 	{
+		std::cerr << "Failed to set objective function" << std::endl;
 		return false;
-	} // 使用 set_obj_fnex(lp, k, row, colno)将目标函数设置为上述计算得到的系数。
+	}
 
-	std::cout << "成功设置目标函数系数" << std::endl;
+	// 设置目标为最小化
+	set_minim(lp);
 
-	set_minim(lp);										   // 使用 set_minim(lp); 将线性规划模型设置为最小化目标函数。
-	std::string lp_file_res_name = "divided_model_res.lp"; // 定义了结果输出文件的名称为 "divided_model_res.lp"，用于存储求解后的结果。
-	set_outputfile(lp, const_cast<char *>(lp_file_res_name.c_str()));
-	write_lp(lp, const_cast<char *>("divided_model.lp")); // 将当前线性规划模型写入到文件 "divided_model.lp" 中，这个文件可能包含了整个线性规划问题的描述和约束条件，用于调试和查看模型的结构。
-	set_verbose(lp, FULL);
-
-	int ret = solve(lp); // 调用 solve(lp) 对模型进行求解。
+	// ------------------------------------------ 3.优化求解 ------------------------------------------
+	int ret = solve(lp);
 	if (ret != OPTIMAL)
 	{
-		std::cout << "求解目标函数失败" << std::endl;
+		std::cerr << "Failed to find optimal solution. Solver returned: " << ret << std::endl;
 		return false;
-	} // 如果求解结果不是最优解，则返回 false。
+	}
 
-	std::cout << "成功求解目标函数" << std::endl;
+	// 获取变量值
+	std::vector<REAL> result(Ncol);
+	if (!get_variables(lp, result.data()))
+	{
+		std::cerr << "Failed to get variables from the linear programming solution." << std::endl;
+		return false;
+	}
 
-	get_variables(lp, row); // 获取求解结果中各变量的取值。
-	// 根据线性规划的结果，将目标分配给各个代理，以满足约束条件和优化目标。
+	// 根据线性规划的结果，将目标分配给各个代理，以满足约束条件和优化目标
 	target_allocated_agents.resize(targets_.size());
 	for (int i = 0; i < agents_.size(); i++)
 	{
 		for (int j = 0; j < targets_.size(); j++)
 		{
-			int index = i * targets_.size() + j + 1; // 计算出节点在线性规划结果数组 row 中的索引。
-			if (row[index - 1] > 0.5)
+			int index = i * targets_.size() + j + 1;
+			if (result[index - 1] > 0.5)
 			{
 				target_allocated_agents[j].push_back(agents_[i]);
-			} // 检查对应的线性规划结果，如果大于 0.5，表示该节点被分配给当前的代理。
+			}
 		}
 	}
-	
+
+#ifdef VERBOSE
 	// 输出每个目标被分配的无人机情况
 	for (int i = 0; i < target_allocated_agents.size(); ++i)
 	{
@@ -251,15 +253,10 @@ bool FirepowerAllocation::run()
 		}
 		std::cout << std::endl;
 	}
+#endif
 
-	res = true;
-
-	if (row != NULL)
-		free(row);
-	if (colno != NULL)
-		free(colno);
-	if (lp != NULL)
-		delete_lp(lp);
+	// 清理
+	delete_lp(lp);
 
 	return res;
 }
