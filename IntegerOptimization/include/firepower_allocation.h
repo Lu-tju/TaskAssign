@@ -25,6 +25,22 @@ namespace firepower_allocation
 		{
 			agents_ = agents;
 		};
+		int getAssignedTargetOfUAV(int uav_id){
+			return agents_allocated_target[uav_id].getID();
+		};
+		void getAssignedTargetPosOfUAV(int uav_id, Eigen::Vector2d &pos, double &angle){
+			angle = agents_allocated_target[uav_id].getTheta();
+			pos = agents_allocated_target[uav_id].getVec();
+		};
+		std::vector<int> getAssignedUAVofTarget(int target_id){
+			std::vector<int> uav_id;
+			for (int j = 0; j < target_allocated_agents[target_id].size(); ++j)
+			{
+				uav_id.push_back(target_allocated_agents[target_id][j].getID());
+			}
+			return uav_id;
+		};
+		void getTargetPos();
 		void updateUAV(Eigen::Vector2d pos, double angle, int uav_id);
 		void updateTarget(Eigen::Vector2d pos, double theta);
 		
@@ -33,6 +49,7 @@ namespace firepower_allocation
 		std::vector<Waypoint> targets_;
 		std::vector<Waypoint> agents_;
 		std::vector<std::vector<Waypoint>> target_allocated_agents;
+		std::vector<Waypoint> agents_allocated_target;
 		std::vector<std::vector<Waypoint>> agents_paths_;
 
 		int uav_num_;

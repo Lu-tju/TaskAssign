@@ -242,6 +242,19 @@ bool FirepowerAllocation::run()
 		}
 	}
 
+	agents_allocated_target.resize(agents_.size());
+	for (int i = 0; i < targets_.size(); i++)
+	{
+		for (int j = 0; j < agents_.size(); j++)
+		{
+			int index = j * targets_.size() + i + 1;
+			if (result[index - 1] > 0.5)
+			{
+				agents_allocated_target[j] = targets_[i];
+			}
+		}
+	}
+
 #ifdef VERBOSE
 	// 输出每个目标被分配的无人机情况
 	for (int i = 0; i < target_allocated_agents.size(); ++i)
@@ -252,6 +265,11 @@ bool FirepowerAllocation::run()
 			std::cout << target_allocated_agents[i][j].getID() << " ";
 		}
 		std::cout << std::endl;
+	}
+
+	for (int i = 0; i < agents_allocated_target.size(); ++i)
+	{
+		std::cout << "Agents " << i << " allocated target: "<<agents_allocated_target[i].getID()<< std::endl;
 	}
 #endif
 
